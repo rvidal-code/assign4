@@ -32,21 +32,28 @@ with tabs[2]:
 with tabs[3]:
     st.subheader("Most Consumed Beverages in the US")
 
-    # Put the link to a public CSV here. It needs two columns:
-    # "Beverage" and "Gallons per capita"
-    BEVERAGE_URL = "PASTE_YOUR_CSV_URL_HERE"
+    # Replace with your GitHub raw URL, for example:
+    # https://raw.githubusercontent.com/<your-username>/<your-repo>/main/beverages.csv
+    BEVERAGE_URL = "PASTE_YOUR_RAW_GITHUB_URL_HERE"
 
     @st.cache_data(ttl=3600)
     def load_beverage_data(url):
-        response = requests.get(url, timeout=10)
-        response.raise_for_status()
-        return pd.read_csv(StringIO(response.text))
+        try:
+            # First choice: fetch the data online
+            response = requests.get(url, timeout=10)
+            response.raise_for_status()
+            return pd.read_csv(StringIO(response.text)), "online"
+        except Exception:
+            # Fallback: read the CSV stored in the repository
+            return pd.read_csv("beverages.csv"), "local file"
 
     try:
-        bev_df = load_beverage_data(BEVERAGE_URL)
+        bev_df, source = load_beverage_data(BEVERAGE_URL)
         bev_df = bev_df.sort_values("Gallons per capita", ascending=False)
-        st.dataframe(bev_df, use_container_width=True)
-        st.bar_chart(bev_df.set_index("Beverage")["Gallons per capita"])
+
         st.write(f"Most consumed beverage: **{bev_df.iloc[0]['Beverage']}**")
+        st.bar_chart(bev_df.set_index("Beverage")["Gallons per capita"])
+        st.dataframe(bev_df, use_container_width=True)
+        st.caption(f"Data loaded from: {source}. Source: Beverage Marketing Corporation (2010 per capita figures).")
     except Exception as e:
         st.error(f"Could not load beverage data: {e}")
